@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" href="jquery.form.css" />
+	<style>
+	</style>
+	<meta charset="utf-8" />
+	<title>jQuery.form test drive</title>
+</head>
+<body>
+	<h3>jQuery.form test drive</h3>
+	<form class="input">
+		<table>
+			<tbody>
+				<tr>
+					<th></th>
+					<td>没有账号？<a href="nurse_station/signup.html">现在注册</a></td>
+				</tr>
+				<tr>
+					<th>账号</th>
+					<td><input type="text" class="form" name="nurse" data-validation-engine="validate[required, custom[email]]" /></td>
+				</tr>
+				<tr>
+					<th></th>
+					<td>忘记密码？<a href="nurse_station/reset.request.html">现在重置</a></td>
+				</tr>
+				<tr>
+					<th>密码</th>
+					<td><input type="password" class="form" name="passwd" data-validation-engine="validate[required]" /></td>
+				</tr>
+				<tr>
+					<th></th>
+					<td><input type="submit" class="button submit" /></td>
+				</tr>
+				<tr>
+					<th></th>
+					<td><input type="reset" class="button reset" /></td>
+				</tr>
+			</tbody>
+		</table>
+	</form>
+	<script src="//ajax.aspnetcdn.com/ajax/jquery/jquery-2.1.0.min.js"></script>
+	<script defer="defer" src="//ajax.aspnetcdn.com/ajax/jquery.ui/1.10.4/jquery-ui.min.js"></script>
+	<script defer="defer" src="jquery.form.js"></script>
+	<script defer="defer">
+$(function () {
+var $table = $("form").form({
+});
+
+});
+	</script>
+</body>
+</html>
