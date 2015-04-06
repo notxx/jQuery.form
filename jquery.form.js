@@ -87,8 +87,10 @@ methods.message = function(content, type) {
 	var $form = this;
 	if ($.isFunction($form.validationEngine)) {
 		$form.validationEngine("showPrompt", content, type);
-	} else if (console && console.log) {
-		console.log(content, type);
+//	} else if (console && console.log) {
+//		console.log(content, type);
+	} else {
+		alert(content, type);
 	}
 };
 
