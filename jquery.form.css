@@ -1,9 +1,9 @@
 .ui-form { min-width: 800px; }
-.ui-form table { width: 100%; }
+.ui-form table { width: 100%; border-collapse: collapse; }
 .ui-form table tbody {}
-.ui-form table tbody tr {}
+.ui-form table tbody tr { border: none; }
 .ui-form table tbody tr .ui-form-header { text-align: right; vertical-align: top; padding: .3em  2.4em 0 0; width: 5em; }
-.ui-form table tbody tr .ui-form-content {}
-.ui-form table tbody tr .ui-form-input { width: 100%; }
+.ui-form table tbody tr .ui-form-content { padding: .2em; }
+.ui-form table tbody tr .ui-form-input { width: 99%; width: calc(100% - .4em); }
 .ui-form table tbody tr textarea.ui-form-input { height: 5em; padding: 2px 1px; }
 .ui-form table tbody tr .ui-form-button {}

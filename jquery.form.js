@@ -69,7 +69,18 @@ methods.init = function(options) {
 	.on("submit", submit)
 	.on("reset", reset);
 	// 使用jQuery.validationEngine验证表单
-	if ($.isFunction($form.validationEngine)) { $form.validationEngine(); }
+	if ($.isFunction($form.validationEngine)) { $form.validationEngine({
+		onValidationComplete: function(form, valid) {
+			$form.find("tr").removeClass("ui-state-error");
+			$.each($form.data("jqv").InvalidFields, function() {
+				var $content = $(this).closest("tr");
+				$content.addClass("ui-state-error");
+			});
+			return valid;
+		},
+		autoHidePrompt: true,
+		autoHideDelay: 2000
+	}); }
 	// 添加ui-form-header / ui-form-content样式
 	if (!($(".ui-form-header", $form).length || $(".ui-form-content", $form).length)) {
 		$("th", $form).addClass("ui-form-header");
