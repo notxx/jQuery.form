@@ -31,6 +31,7 @@ function reset(e) { // 重置
 		$form = $this.is("form") ? $this : $this.parents("form"),
 		options = $form.data("form.options");
 	// 隐藏jQuery.validationEngine的显示
+	$form.find("tr").removeClass("ui-state-error");
 	if ($.isFunction($form.validationEngine)) { $form.validationEngine("hide"); }
 	$form.find("input[type=hidden]").val(""); // 清空hidden域
 	if ($.isFunction(options.reset)) { options.reset.apply(this, [ e ]); }
@@ -90,7 +91,7 @@ methods.init = function(options) {
 	$("input[type=button], input[type=submit], input[type=reset], button", $form).addClass("ui-form-button").button();
 	// 添加ui-form-input样式
 	if (!$(".ui-form-input", $form).length)
-		$("input[type=text], input:not([type]), textarea", $form).addClass("ui-form-input");
+		$("input[type=text], input[type=password], input:not([type]), textarea", $form).addClass("ui-form-input");
 	// 处理按键事件
 	$("input", $form).on("keypress", keypress);
 };
