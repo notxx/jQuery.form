@@ -4,12 +4,18 @@ if (!console) // 避免IE下没有console出错
 	window.console = { log: function () { } };
 
 function submit(e) { // 提交
+	e.stopPropagation();
 	e.preventDefault();
 	var $this = $(this),
 		$form = $this.is("form") ? $this : $this.parents("form"),
 		options = $form.data("form.options");
 	// 使用jQuery.validationEngine验证表单
 	if ($.isFunction($form.validationEngine) && !$form.validationEngine("validate")) { return; }
+	// 使用jQuery.form-validator验证表单
+	if ($.isFunction($form.isValid) && !$form.isValid(null, options.jfv)) {
+		$form.find("." + options.jfv.errorMessageClass).addClass(options.jfv.errorMessageExtra)
+		return;
+	}
 	var data = options.data.apply($form, [ $form ]); // 产生需要提交的数据
 //	return console.log(data);
 	$(":input", $form).attr("disabled", true); // 暂时禁用所有输入框
@@ -30,9 +36,11 @@ function reset(e) { // 重置
 	var $this = $(this),
 		$form = $this.is("form") ? $this : $this.parents("form"),
 		options = $form.data("form.options");
-	// 隐藏jQuery.validationEngine的显示
 	$form.find("tr").removeClass("ui-state-error");
+	// 隐藏jQuery.validationEngine的显示
 	if ($.isFunction($form.validationEngine)) { $form.validationEngine("hide"); }
+	// 隐藏jQuery.form-validator的显示
+	if ($.isFunction($form.isValid)) { $form.find("." + options.jfv.errorMessageClass).remove(); }
 	$form.find("input[type=hidden]").val(""); // 清空hidden域
 	if ($.isFunction(options.reset)) { options.reset.apply(this, [ e ]); }
 }
@@ -67,8 +75,8 @@ methods.init = function(options) {
 		options = $.extend({}, defaults);
 	$form.addClass("ui-form")
 	.data("form.options", options)
-	.on("submit", submit)
-	.on("reset", reset);
+	.on("submit.form", submit)
+	.on("reset.form", reset);
 	// 使用jQuery.validationEngine验证表单
 	if ($.isFunction($form.validationEngine)) { $form.validationEngine({
 		onValidationComplete: function(form, valid) {
@@ -82,6 +90,14 @@ methods.init = function(options) {
 		autoHidePrompt: true,
 		autoHideDelay: 2000
 	}); }
+	// 使用jQuery.form-validator验证表单
+	else if ($.isFunction($.validate) && $.isFunction($form.isValid)) {
+		var jfv = options.jfv;
+		jfv.form = $form;
+		$.validate(jfv);
+		$form.off("submit.form submit.validation");
+		$form.on("submit.validation", submit);
+	}
 	// 添加ui-form-header / ui-form-content样式
 	if (!($(".ui-form-header", $form).length || $(".ui-form-content", $form).length)) {
 		$("th", $form).addClass("ui-form-header");
@@ -107,9 +123,15 @@ methods.message = function(content, type) {
 };
 
 var defaults = {
-		data : function() { return this.serialize(); },
-		method : "post",
-		result : function(err, data, xhr) {	}
+		data: function() { return this.serialize(); },
+		jfv: {
+			errorMessagePosition: "top",
+			errorMessageClass: "form-error",
+			//errorMessageExtra: "col-sm-offset-2 col-sm-10",
+			validateOnBlur: false
+		},
+		method: "post",
+		result: function(err, data, xhr) {	}
 };
 
 $.fn.form = function(method) {
