@@ -1,0 +1,14 @@
+{
+  "name": "jquery.form",
+  "main": "jquery.form.js",
+  "version": "0.0.0",
+  "homepage": "https://github.com/notxx/jQuery.form",
+  "authors": [
+    "notXX <notxx@qq.com>"
+  ],
+  "keywords": [
+    "jquery",
+    "form"
+  ],
+  "license": "MIT"
+}

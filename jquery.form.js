@@ -13,7 +13,18 @@ function submit(e) { // 提交
 	if ($.isFunction($form.validationEngine) && !$form.validationEngine("validate")) { return; }
 	// 使用jQuery.form-validator验证表单
 	if ($.isFunction($form.isValid) && !$form.isValid(null, options.jfv)) {
+		// TODO jfv的email验证对163.com似乎不对付
 		$form.find("." + options.jfv.errorMessageClass).addClass(options.jfv.errorMessageExtra)
+		$(".form-control").each(function() { // bootstrap
+			var $this = $(this),
+				$host = $this.closest(".form-group"),
+				$icon = $this.data("$icon");
+			if (!$icon || !$icon.length) return;
+			if ($host.is(".has-error"))
+				$icon.addClass("glyphicon-remove").removeClass("glyphicon-ok");
+			else
+				$icon.addClass("glyphicon-ok").removeClass("glyphicon-remove");
+		});
 		return;
 	}
 	var data = options.data.apply($form, [ $form ]); // 产生需要提交的数据
@@ -40,7 +51,16 @@ function reset(e) { // 重置
 	// 隐藏jQuery.validationEngine的显示
 	if ($.isFunction($form.validationEngine)) { $form.validationEngine("hide"); }
 	// 隐藏jQuery.form-validator的显示
-	if ($.isFunction($form.isValid)) { $form.find("." + options.jfv.errorMessageClass).remove(); }
+	if ($.isFunction($form.isValid)) {
+		$form.find("." + options.jfv.errorMessageClass).remove();
+		$(".form-control").each(function() { // bootstrap
+			var $this = $(this),
+				$host = $this.closest(".form-group"),
+				$icon = $this.data("$icon");
+			if (!$icon || !$icon.length) return;
+			$icon.removeClass("glyphicon-remove").removeClass("glyphicon-ok");
+		});
+	}
 	$form.find("input[type=hidden]").val(""); // 清空hidden域
 	if ($.isFunction(options.reset)) { options.reset.apply(this, [ e ]); }
 }
@@ -97,6 +117,12 @@ methods.init = function(options) {
 		$.validate(jfv);
 		$form.off("submit.form submit.validation");
 		$form.on("submit.validation", submit);
+		$(".form-control").each(function() { // bootstrap
+			var $this = $(this),
+				$host = $this.closest(".form-group").addClass("has-feedback"),
+				$icon = $('<span class="glyphicon form-control-feedback">');
+			$this.after($icon).data("$icon", $icon);
+		});
 	}
 	// 添加ui-form-header / ui-form-content样式
 	if (!($(".ui-form-header", $form).length || $(".ui-form-content", $form).length)) {
@@ -104,7 +130,10 @@ methods.init = function(options) {
 		$("td", $form).addClass("ui-form-content");
 	}
 	// 将按钮转化为jQuery按钮
-	$("input[type=button], input[type=submit], input[type=reset], button", $form).addClass("ui-form-button").button();
+	var $buttons = $form.find("input[type=button], input[type=submit], input[type=reset], button").addClass("ui-form-button btn btn-default");
+	if ($.isFunction($buttons.button)) $buttons.button();
+	$buttons.filter("[type=submit]").addClass("btn-primary");
+	$buttons.filter("[type=reset]").addClass("btn-danger");
 	// 添加ui-form-input样式
 	if (!$(".ui-form-input", $form).length)
 		$("input[type=text], input[type=password], input:not([type]), textarea", $form).addClass("ui-form-input");
@@ -125,9 +154,9 @@ methods.message = function(content, type) {
 var defaults = {
 		data: function() { return this.serialize(); },
 		jfv: {
-			errorMessagePosition: "top",
+			//errorMessagePosition: "top",
 			errorMessageClass: "form-error",
-			//errorMessageExtra: "col-sm-offset-2 col-sm-10",
+			errorMessageExtra: "col-sm-offset-2 col-sm-10",
 			validateOnBlur: false
 		},
 		method: "post",
