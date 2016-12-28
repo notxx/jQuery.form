@@ -1,14 +1,17 @@
+/// /// <reference path="typings/form.d.ts" />
 (function($) {
 if (!$ || !$.fn) return;
 if (!console) // 避免IE下没有console出错
 	window.console = { log: function () { } };
 
+/** @param e {Event} */
 function submit(e) { // 提交
 	e.stopPropagation();
 	e.preventDefault();
 	var $this = $(this),
-		$form = $this.is("form") ? $this : $this.parents("form"),
-		options = $form.data("form.options");
+		$form = $this.is("form") ? $this : $this.closest("form");
+	/** @type {FormOptions} */
+	var options = $form.data("form.options");
 	// 使用jQuery.validationEngine验证表单
 	if ($.isFunction($form.validationEngine) && !$form.validationEngine("validate")) { return; }
 	// 使用jQuery.form-validator验证表单
@@ -43,9 +46,10 @@ function submit(e) { // 提交
 	});
 }
 
+/** @param e {Event} */
 function reset(e) { // 重置
 	var $this = $(this),
-		$form = $this.is("form") ? $this : $this.parents("form"),
+		$form = $this.is("form") ? $this : $this.closest("form"),
 		options = $form.data("form.options");
 	$form.find("tr").removeClass("ui-state-error");
 	// 隐藏jQuery.validationEngine的显示
@@ -65,6 +69,7 @@ function reset(e) { // 重置
 	if ($.isFunction(options.reset)) { options.reset.apply(this, [ e ]); }
 }
 
+/** @param e {JQueryKeyEventObject} */
 function keypress(e) { // 将输入中的回车转化为跳至下一个元件
 	var $this = $(this), $form = $this.closest("form");
 	switch ($this.attr("type")) {
@@ -87,6 +92,9 @@ function keypress(e) { // 将输入中的回车转化为跳至下一个元件
 }
 
 var methods = {};
+/**
+ * @param options {FormOptions}
+ */
 methods.init = function(options) {
 	var $form = this;
 	if (typeof options === "object")
@@ -97,6 +105,33 @@ methods.init = function(options) {
 	.data("form.options", options)
 	.on("submit.form", submit)
 	.on("reset.form", reset);
+	// result
+	if ($.isFunction(options.result)) { // check succeed & failed
+		if (!$.isFunction(options.succeed))
+			options.succeed = $.noop;
+		if (!$.isFunction(options.failed))
+			options.failed = $.noop;
+	} else if (options.result instanceof $) { // JQuery
+		if (options.result.is(".ui-table")) { // jQuery.table TODO
+			options.result = resulting($form.closest(".modal"), options.result);
+		}
+	} else {
+		/** @type {ResultOptions} */
+		var ro = options.result;
+		options.result = resulting(ro.$modal || $form.closest(".modal"), ro.$table);
+	}
+	/**
+	 * @param $modal {JQuery}
+	 * @param $table {JQuery}
+	 */
+	function resulting($modal, $table) {
+		return (function(error, data, xhr) {
+			if ($table && $table.table)
+				$table.table("load");
+			if ($modal && $modal.modal)
+				$modal.modal("hide");
+		});
+	}
 	// 使用jQuery.validationEngine验证表单
 	if ($.isFunction($form.validationEngine)) { $form.validationEngine({
 		onValidationComplete: function(form, valid) {
@@ -129,9 +164,9 @@ methods.init = function(options) {
 		$("th", $form).addClass("ui-form-header");
 		$("td", $form).addClass("ui-form-content");
 	}
-	// 将按钮转化为jQuery按钮
+	// 将按钮转化为bootstrap按钮
 	var $buttons = $form.find("input[type=button], input[type=submit], input[type=reset], button").addClass("ui-form-button btn btn-default");
-	if ($.isFunction($buttons.button)) $buttons.button();
+	if ($.isFunction($buttons.button)) $buttons.button(); // TODO
 	$buttons.filter("[type=submit]").addClass("btn-primary");
 	$buttons.filter("[type=reset]").addClass("btn-danger");
 	// 添加ui-form-input样式
@@ -151,6 +186,7 @@ methods.message = function(content, type) {
 	}
 };
 
+/** @type {FormOptions} */
 var defaults = {
 		data: function() { return this.serialize(); },
 		jfv: {
@@ -160,9 +196,26 @@ var defaults = {
 			validateOnBlur: false
 		},
 		method: "post",
-		result: function(err, data, xhr) {	}
+		/**
+		 * @param err {Error}
+		 * @param data {any}
+		 * @param xhr {XMLHttpRequest}
+		 */
+		result: function(err, data, xhr) {
+			var $this = $(this),
+				$form = $this.is("form") ? $this : $this.closest("form");
+			/** @type {FormOptions} */
+			var options = $form.data("form.options");
+			if (err)
+				options.failed.call($this, err)
+			else
+				options.succeed.call($this, data);
+		},
+		succeed: $.noop,
+		failed: $.noop
 };
 
+/** @this jQuery */
 $.fn.form = function(method) {
 	if(!this.length) return this;  // 没必要处理空集合
 	var $form = this.is("form") ? this : this.closest("form");
