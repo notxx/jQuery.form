@@ -1,4 +1,4 @@
-/// /// <reference path="typings/form.d.ts" />
+/// <reference path="typings/form.d.ts" />
 (function($) {
 if (!$ || !$.fn) return;
 if (!console) // 避免IE下没有console出错
@@ -12,24 +12,7 @@ function submit(e) { // 提交
 		$form = $this.is("form") ? $this : $this.closest("form");
 	/** @type {FormOptions} */
 	var options = $form.data("form.options");
-	// 使用jQuery.validationEngine验证表单
-	if ($.isFunction($form.validationEngine) && !$form.validationEngine("validate")) { return; }
-	// 使用jQuery.form-validator验证表单
-	if ($.isFunction($form.isValid) && !$form.isValid(null, options.jfv)) {
-		// TODO jfv的email验证对163.com似乎不对付
-		$form.find("." + options.jfv.errorMessageClass).addClass(options.jfv.errorMessageExtra)
-		$(".form-control").each(function() { // bootstrap
-			var $this = $(this),
-				$host = $this.closest(".form-group"),
-				$icon = $this.data("$icon");
-			if (!$icon || !$icon.length) return;
-			if ($host.is(".has-error"))
-				$icon.addClass("glyphicon-remove").removeClass("glyphicon-ok");
-			else
-				$icon.addClass("glyphicon-ok").removeClass("glyphicon-remove");
-		});
-		return;
-	}
+	if (!validated($form, options)) return;
 	var data = options.data.apply($form, [ $form ]); // 产生需要提交的数据
 //	return console.log(data);
 	$(":input", $form).attr("disabled", true); // 暂时禁用所有输入框
@@ -46,11 +29,67 @@ function submit(e) { // 提交
 	});
 }
 
+/**
+ * @param $form {JQuery}
+ * @param options {FormOptions}
+ * @returns {boolean}
+ */
+function validated($form, options) {
+	// validation
+	var result = "ok";
+	$form.find(".form-group").each(function(i, group) {
+		var $group = $(group),
+			r = validate_group($group, options.validation)();
+		if (!r || r === "error") result = "error";
+		if (result === "ok") result = r;
+	});
+	if (result === "error") return false;
+	// 使用jQuery.validationEngine验证表单
+	if ($.isFunction($form.validationEngine) && !$form.validationEngine("validate")) { return false; }
+	// 使用jQuery.form-validator验证表单
+	if ($.isFunction($form.isValid) && !$form.isValid(null, options.jfv)) {
+		// TODO jfv的email验证对163.com似乎不对付
+		$form.find("." + options.jfv.errorMessageClass).addClass(options.jfv.errorMessageExtra)
+		$(".form-control").each(function() { // bootstrap
+			var $this = $(this),
+				$host = $this.closest(".form-group"),
+				$icon = $this.data("$icon");
+			if (!$icon || !$icon.length) return;
+			if ($host.is(".has-error"))
+				$icon.addClass("glyphicon-remove").removeClass("glyphicon-ok");
+			else
+				$icon.addClass("glyphicon-ok").removeClass("glyphicon-remove");
+		});
+		return false;
+	}
+	return true;
+}
+
 /** @param e {Event} */
 function reset(e) { // 重置
 	var $this = $(this),
 		$form = $this.is("form") ? $this : $this.closest("form"),
-		options = $form.data("form.options");
+		options = $form.data("form.options"),
+		vo = options.validation;
+	// validation
+	$form.find(".form-group").each(function(i, group) {
+		var $group = $(group).data("validated", false),
+			$inputs = $group.find(":input");
+		$inputs.each(function(j, input) {
+			var $input = $(input).data("validated", false),
+				$icon = $input.nextUntil(":input").filter(vo.icons.selector).first();
+			$icon.remove();
+			if ($input.tooltip)
+				$input.tooltip("destroy");
+			$input.on(vo.events.invalidate, function() {
+				$group.data("validated", false);
+				$input.data("validated", false);
+			});
+		});
+		$inputs.on(vo.events.validate, validate_group($group, vo));
+		$group.removeClass("has-feedback has-success has-warning has-error");
+	});
+	
 	$form.find("tr").removeClass("ui-state-error");
 	// 隐藏jQuery.validationEngine的显示
 	if ($.isFunction($form.validationEngine)) { $form.validationEngine("hide"); }
@@ -67,6 +106,107 @@ function reset(e) { // 重置
 	}
 	$form.find("input[type=hidden]").val(""); // 清空hidden域
 	if ($.isFunction(options.reset)) { options.reset.apply(this, [ e ]); }
+}
+
+/**
+ * @param $group {JQuery}
+ * @param vo {ValidationOptions}
+ */
+function validate_group($group, vo) {
+	return function(event) {
+		var group_result = $group.data("validated");
+		if (group_result) return group_result;
+		group_result = "neutral";
+		var messages = [],
+			$inputs = $group.find(":input"),
+			styles = vo.styles,
+			icons = vo.icons;
+		//console.log("validate", $group, group_result);
+		$inputs.each(function(j, input) {
+			var $input = $(input),
+				validation = $input.data("validation"),
+				result = $input.data("validated");
+			if (!validation) return;
+			if (result) {
+				if (result === "error" || group_result === "ok" || group_result === "neutral")
+					group_result = result;
+				return;
+			}
+			result = "ok";
+			if (typeof validation === "string") {
+				validation = validation.split(" ");
+				$input.data("validation", validation);
+			}
+			var message = [],
+				val = $input.val();
+			$.each(validation, function(k, v) {
+				var validate = vo.rules[v];
+				if (!validate || !validate.rule) return;
+				var rule = validate.rule;
+				if (rule instanceof RegExp) {
+					if (rule.test(val)) return;
+					group_result = result = "error"; // TODO
+					message.push(validate.message);
+				} else if (typeof rule === "function" && rule.length === 2) {
+					// TODO
+				}
+			});
+			$input.data("validated", result);
+			// icon
+			var $icon = $input.nextUntil(":input").filter(icons.selector).first(),
+				$parent = $input.offsetParent();
+			if (!$icon.length)
+				$icon = $(icons.template).insertAfter($input);
+			$icon.css("right", $parent.outerWidth() - $input.position().left - $input.outerWidth());
+			switch (result) {
+			case "ok":
+				$icon.addClass(icons.ok).removeClass(icons.nok);
+				break;
+			case "warning":
+				$icon.addClass(icons.warning).removeClass(icons.nwarning);
+				break;
+			case "error":
+				$icon.addClass(icons.error).removeClass(icons.nerror);
+				break;
+			}
+			// message
+			messages[j] = message = message.join("\r\n");
+			//console.log(result, messages);
+			$input.attr("title", message);
+			if ($input.tooltip) {
+				if (message)
+					$input.tooltip({ trigger: "manual" }).tooltip("show");
+				else
+					$input.tooltip("destroy");
+			}
+		});
+		// validated
+		$group.data("validated", group_result);
+		// style
+		switch (group_result) {
+		case "neutral":
+			$group.removeClass(styles.neutral);
+			break;
+		case "ok":
+			$group.addClass(styles.ok).removeClass(styles.nok);
+			break;
+		case "warning":
+			$group.addClass(styless.warning).removeClass(styles.nwarning);
+			break;
+		case "error":
+			$group.addClass(styles.error).removeClass(styles.nerror);
+			break;
+		}
+		// messages
+		var $message = $group.find(".help-block.feedback").empty();
+		if ($message.length) { // 没有显示容器就不显示
+			var $ul = $('<ul>').appendTo($message);
+			$.each(messages, function(k, message) {
+				$('<li>').text(message);
+			});
+		}
+		return group_result;
+	}
 }
 
 /** @param e {JQueryKeyEventObject} */
@@ -132,6 +272,38 @@ methods.init = function(options) {
 				$modal.modal("hide");
 		});
 	}
+	// validation
+	{
+		var vo = options.validation,
+			styles = vo.styles,
+			icons = vo.icons;
+		styles.nok = styles.warning + " " + styles.error;
+		styles.nwarning = styles.ok + " " + styles.error;
+		styles.nerror = styles.ok + " " + styles.warning;
+		styles.neutral = styles.ok + " " + styles.warning + " " + styles.error;
+		icons.nok = icons.warning + " " + icons.error;
+		icons.nwarning = icons.ok + " " + icons.error;
+		icons.nerror = icons.ok + " " + icons.warning;
+		$form.find(".form-group").each(function(i, group) {
+			var $group = $(group),
+				$inputs = $group.find(":input"),
+				validatee = [];
+			if (!$inputs.length) return;
+			$inputs.each(function(j, input) {
+				var $input = $(input),
+					validation = $input.data("validation");
+				if (!validation)  return $input.data("validated", true);
+				validatee.push(input);
+				$input.on(vo.events.invalidate, function() {
+					$group.data("validated", false);
+					$input.data("validated", false);
+				});
+			});
+			if (!validatee.length) return;
+			$group.addClass("has-feedback");
+			$(validatee).on(vo.events.validate, validate_group($group, vo));
+		});
+	}
 	// 使用jQuery.validationEngine验证表单
 	if ($.isFunction($form.validationEngine)) { $form.validationEngine({
 		onValidationComplete: function(form, valid) {
@@ -189,6 +361,30 @@ methods.message = function(content, type) {
 /** @type {FormOptions} */
 var defaults = {
 		data: function() { return this.serialize(); },
+		validation: {
+			events: {
+				validate: "blur change",
+				invalidate: "change"
+			},
+			styles: {
+				ok: "has-success",
+				warning: "has-warning",
+				error: "has-error",
+			},
+			icons: {
+				selector: "span.glyphicon.form-control-feedback",
+				template: '<span class="glyphicon form-control-feedback" aria-hidden="true"></span>',
+				ok: "glyphicon-ok",
+				warning: "glyphicon-warning-sign",
+				error: "glyphicon-remove"
+			},
+			rules: {
+				required: {
+					rule: /^.+$/,
+					message: "必须填写",
+				}
+			}
+		},
 		jfv: {
 			//errorMessagePosition: "top",
 			errorMessageClass: "form-error",

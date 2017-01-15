@@ -7,3 +7,5 @@
 .ui-form table tbody tr .ui-form-input { width: 99%; width: calc(100% - .4em); }
 .ui-form table tbody tr textarea.ui-form-input { height: 5em; padding: 2px 1px; }
 .ui-form table tbody tr .ui-form-button {}
+
+.input-group .form-control-feedback { z-index: 3; }
