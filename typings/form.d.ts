@@ -10,7 +10,6 @@ interface Form {
 interface FormOptions {
 	data: (data:any)=>any
 	validation: ValidationOptions
-	jfv: any
 	target: string
 	method: string
 	result: (error:Error, data:any, xhr:XMLHttpRequest)=>void | ResultOptions | JQuery
@@ -65,6 +64,4 @@ interface JQuery {
 	form: Form
 	modal?: Function
 	table?: Function
-	validationEngine?: Function
-	isValid?: Function
 }
