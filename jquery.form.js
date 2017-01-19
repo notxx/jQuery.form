@@ -52,7 +52,7 @@ function reset(e) { // 重置
 		$form = $this.is("form") ? $this : $this.closest("form"),
 		options = $form.data("form.options"),
 		vo = options.validation;
-	// validation
+	// reset validation
 	$form.find(".form-group").each(function(i, group) {
 		var $group = $(group).data("validated", false),
 			$inputs = $group.find(":input");
@@ -60,18 +60,14 @@ function reset(e) { // 重置
 			var $input = $(input).data("validated", false),
 				$icon = $input.nextUntil(":input").filter(vo.icons.selector).first();
 			$icon.remove();
+			// tooltip
 			if ($input.tooltip)
 				$input.tooltip("destroy");
-			$input.on(vo.events.invalidate, function() {
-				$group.data("validated", false);
-				$input.data("validated", false);
-			});
 		});
-		$inputs.on(vo.events.validate, validate_group($group, vo));
 		$group.removeClass("has-feedback has-success has-warning has-error");
 	});
 	$form.find("input[type=hidden]").val(""); // 清空hidden域
-	if ($.isFunction(options.reset)) { options.reset.apply(this, [ e ]); }
+	if ($.isFunction(options.reset)) { options.reset.apply($form, [ e ]); }
 }
 
 /**
@@ -123,7 +119,10 @@ function validate_group($group, vo) {
 				$parent = $input.offsetParent();
 			if (!$icon.length)
 				$icon = $(icons.template).insertAfter($input);
-			$icon.css("right", $parent.outerWidth() - $input.position().left - $input.outerWidth());
+			if ($input.is("select"))
+				$icon.css("right", $parent.outerWidth() - $input.position().left - $input.outerWidth() + 30);
+			else
+				$icon.css("right", $parent.outerWidth() - $input.position().left - $input.outerWidth());
 			switch (result) {
 			case "ok":
 				$icon.addClass(icons.ok).removeClass(icons.nok);
@@ -202,6 +201,7 @@ var methods = {};
  * @param options {FormOptions}
  */
 methods.init = function(options) {
+	/** @type {JQuery} */
 	var $form = this;
 	if (typeof options === "object")
 		options = $.extend({}, defaults, options);
@@ -211,33 +211,49 @@ methods.init = function(options) {
 	.data("form.options", options)
 	.on("submit.form", submit)
 	.on("reset.form", reset);
+	// $modal
+	{
+		var $modal = options.$modal || $form.closest(".modal");
+		if ($modal.length) {
+			options.$modal = $modal;
+			// 打开对话框时重置表单
+			$modal.on("show.bs.modal", function() {
+				$form.trigger("reset");
+			});
+			$modal.find(".submit").click(function() {
+				$form.trigger("submit");
+				$form.find(":input:visible").first().focus();
+			})
+		}	
+	}
 	// result
-	if ($.isFunction(options.result)) { // check succeed & failed
-		if (!$.isFunction(options.succeed))
-			options.succeed = $.noop;
-		if (!$.isFunction(options.failed))
-			options.failed = $.noop;
-	} else if (options.result instanceof $) { // JQuery
-		if (options.result.is(".ui-table")) { // jQuery.table TODO
-			options.result = resulting($form.closest(".modal"), options.result);
-		}
+	if (typeof options.result === "function") {
+		// do nothing
+	} else if (typeof options.succeed === "function" && typeof options.failed === "function") {
+		options.result = function(err, data, xhr) {
+			if (err)
+				options.failed.call($form, err)
+			else
+				options.succeed.call($form, data);
+		};
 	} else {
-		/** @type {ResultOptions} */
-		var ro = options.result;
-		options.result = resulting(ro.$modal || $form.closest(".modal"), ro.$table);
+		options.result = (function($modal, $table) {
+			return (
+			/**
+			 * @param err {Error}
+			 * @param data {any}
+			 * @param xhr {XMLHttpRequest}
+			 */
+			function(err, data, xhr) {
+				if (err) return; // TODO
+				if ($table && $table.length && $table.table)
+					$table.table("load");
+				if ($modal && $modal.length && $modal.modal)
+					$modal.modal("hide");
+			});
+		})(options.$modal, options.$table);
 	}
-	/**
-	 * @param $modal {JQuery}
-	 * @param $table {JQuery}
-	 */
-	function resulting($modal, $table) {
-		return (function(error, data, xhr) {
-			if ($table && $table.table)
-				$table.table("load");
-			if ($modal && $modal.modal)
-				$modal.modal("hide");
-		});
-	}
+	
 	// validation
 	{
 		var vo = options.validation,
@@ -276,14 +292,42 @@ methods.init = function(options) {
 	$buttons.filter("[type=reset]").addClass("btn-danger");
 	// 处理按键事件
 	$("input", $form).on("keypress", keypress);
+	return $form;
 };
+/**
+ * @param defaults {any}
+ * @param handler {PropertyHandler}
+ */
+methods.defaultValues = function(defaults, handler) {
+	/** @type {JQuery} */
+	var $form = this;
+	if (!defaults) { // 没有默认值就重置为空
+		$form.find(":input").prop("defaultValue", "");
+	} else {
+		if (typeof handler !== "function") handler = $.noop;
+		// 设置默认值
+		$.each(defaults, function(k, v) {
+			var $input = $form.find(":input[name=" + k + "]");
+			if  (handler(k, v, $input)) {
+				// do nothing
+			} else if (v && (v.$id || v._id)) // ObjectId or DBRef
+				$input.prop("defaultValue", v.$id || v._id);
+			else if ($input.is(":checkbox, :radio"))
+				$input.prop("defaultValue", !!v);
+			else
+				$input.prop("defaultValue", v);
+		});
+	}
+	return $form;
+};
+/**
+ * @param content {string}
+ * @param type {string}
+ */
 methods.message = function(content, type) {
 	var $form = this;
-//	if (console && console.log) {
-//		console.log(content, type);
-//	} else {
-		alert(content, type);
-//	}
+	alert(content, type);
+	return $form;
 };
 
 /** @type {FormOptions} */
@@ -313,25 +357,9 @@ var defaults = {
 				}
 			}
 		},
-		method: "post",
-		/**
-		 * @param err {Error}
-		 * @param data {any}
-		 * @param xhr {XMLHttpRequest}
-		 */
-		result: function(err, data, xhr) {
-			var $this = $(this),
-				$form = $this.is("form") ? $this : $this.closest("form");
-			/** @type {FormOptions} */
-			var options = $form.data("form.options");
-			if (err)
-				options.failed.call($this, err)
-			else
-				options.succeed.call($this, data);
-		},
-		succeed: $.noop,
-		failed: $.noop
+		method: "post"
 };
+
 
 /** @this jQuery */
 $.fn.form = function(method) {
@@ -341,7 +369,7 @@ $.fn.form = function(method) {
 
 	if (typeof(method) == 'string' && method.charAt(0) != '_' && methods[method]) {
 		// make sure init is called once
-		if(method != "message") { methods.init.apply($form); }
+		if(method === "init") { methods.init.apply($form); }
 
 		return methods[method].apply($form, Array.prototype.slice.call(arguments, 1));
 	} else if (typeof method == 'object' || !method) {

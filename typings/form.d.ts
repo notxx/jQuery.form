@@ -2,9 +2,11 @@
 
 interface Form {
 	// init
-	(method = "init", options): void
+	(method = "init", options:FormOptions): void
+	// defaultValues
+	(method = "defaultValues", base:any, handler:PropertyHandler): void
 	// message
-	(method = "message", content, type): void
+	(method = "message", content:string, type:string): void
 }
 
 interface FormOptions {
@@ -12,9 +14,11 @@ interface FormOptions {
 	validation: ValidationOptions
 	target: string
 	method: string
-	result: (error:Error, data:any, xhr:XMLHttpRequest)=>void | ResultOptions | JQuery
-	succeed: (data:any)=>void 
-	failed: (error:Error)=>void 
+	result?: (error:Error, data:any, xhr:XMLHttpRequest)=>void
+	succeed?: (data:any)=>void 
+	failed?: (error:Error)=>void 
+	$table?: JQuery
+	$modal?: Boolean | JQuery
 }
 
 interface ValidationOptions {
@@ -55,9 +59,8 @@ interface Validate {
 	(val:string, $el:JQuery): string | JQueryDeferred<string>
 }
 
-interface ResultOptions {
-	$table: JQuery
-	$modal: JQuery
+interface PropertyHandler {
+	(key:string, val:string, $el:JQuery): Boolean
 }
 
 interface JQuery {
