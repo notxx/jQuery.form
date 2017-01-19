@@ -1,1 +1,32 @@
+.input-group .tooltip { z-index: 1; }
 .input-group .form-control-feedback { z-index: 3; }
+/* bootstrap */
+.bootstrap-select .bs-searchbox > input { border-color: #ccc; }
+.bootstrap-select .bs-searchbox > input:focus { border-color: #66afe9; -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102, 175, 233, .6); box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102, 175, 233, .6); }
+.has-success .bootstrap-select .dropdown-toggle,
+.has-warning .bootstrap-select .dropdown-toggle,
+.has-error .bootstrap-select .dropdown-toggle { -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075); box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075); }
+.has-success .bootstrap-select .dropdown-toggle:focus,
+.has-warning .bootstrap-select .dropdown-toggle:focus,
+.has-error .bootstrap-select .dropdown-toggle:focus { outline: none !important; }
+/* success display */
+.has-success .bootstrap-select .dropdown-toggle,
+.has-success .bootstrap-select .dropdown-toggle:hover,
+.has-success .bootstrap-select.open .dropdown-toggle { border-color: #3c763d; }
+.has-success .bootstrap-select .dropdown-toggle:focus,
+.has-success .bootstrap-select .dropdown-toggle:hover,
+.has-success .bootstrap-select.open .dropdown-toggle { /*color: #3c763d; */background-color: #dff0d8; -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 6px #67b168; box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 6px #67b168;}
+/* warning display */
+.has-warning .bootstrap-select .dropdown-toggle,
+.has-warning .bootstrap-select .dropdown-toggle:hover,
+.has-warning .bootstrap-select.open .dropdown-toggle { border-color: #8a6d3b; }
+.has-warning .bootstrap-select .dropdown-toggle:focus,
+.has-warning .bootstrap-select .dropdown-toggle:hover,
+.has-warning .bootstrap-select.open .dropdown-toggle { /*color: #8a6d3b; */background-color: #fcf8e3; -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 6px #c0a16b; box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 6px #c0a16b; }
+/* error display */
+.has-error .bootstrap-select .dropdown-toggle,
+.has-error .bootstrap-select .dropdown-toggle:hover,
+.has-error .bootstrap-select.open .dropdown-toggle { border-color: #a94442; }
+.has-error .bootstrap-select .dropdown-toggle:focus,
+.has-error .bootstrap-select .dropdown-toggle:hover,
+.has-error .bootstrap-select.open .dropdown-toggle { /*color: #a94442; */background-color: #f2dede; -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 6px #ce8483; box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 6px #ce8483; }

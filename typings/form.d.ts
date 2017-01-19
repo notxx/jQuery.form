@@ -67,4 +67,5 @@ interface JQuery {
 	form: Form
 	modal?: Function
 	table?: Function
+	selectpicker?: Function
 }

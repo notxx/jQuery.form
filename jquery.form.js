@@ -48,6 +48,8 @@ function validated($form, options) {
 
 /** @param e {Event} */
 function reset(e) { // 重置
+	e.stopPropagation();
+	e.preventDefault();
 	var $this = $(this),
 		$form = $this.is("form") ? $this : $this.closest("form"),
 		options = $form.data("form.options"),
@@ -63,6 +65,11 @@ function reset(e) { // 重置
 			// tooltip
 			if ($input.tooltip)
 				$input.tooltip("destroy");
+			// bootstrap-select
+			if ($input.parent().is(".bootstrap-select"))
+				$input.selectpicker("val", $input.prop("defaultValue"));
+			else
+				$input.val($input.prop("defaultValue"));
 		});
 		$group.removeClass("has-feedback has-success has-warning has-error");
 	});
@@ -119,7 +126,9 @@ function validate_group($group, vo) {
 				$parent = $input.offsetParent();
 			if (!$icon.length)
 				$icon = $(icons.template).insertAfter($input);
-			if ($input.is("select"))
+			if ($input.parent().is(".bootstrap-select")) // bootstrap-select
+				$icon.css("right", 21);
+			else if ($input.is("select")) // maybe no bootstrap-select
 				$icon.css("right", $parent.outerWidth() - $input.position().left - $input.outerWidth() + 30);
 			else
 				$icon.css("right", $parent.outerWidth() - $input.position().left - $input.outerWidth());
@@ -140,7 +149,7 @@ function validate_group($group, vo) {
 			$input.attr("title", message);
 			if ($input.tooltip) {
 				if (message)
-					$input.tooltip({ trigger: "manual" }).tooltip("show");
+					$input.tooltip({ trigger: "manual", placement: "auto" }).tooltip("show");
 				else
 					$input.tooltip("destroy");
 			}
@@ -276,6 +285,8 @@ methods.init = function(options) {
 					validation = $input.data("validation");
 				if (!validation)  return $input.data("validated", true);
 				validatee.push(input);
+				if ($input.is("select") && !$input.parent().is(".bootstrap-select") && $input.selectpicker)
+					$input.selectpicker();
 				$input.on(vo.events.invalidate, function() {
 					$group.data("validated", false);
 					$input.data("validated", false);
@@ -335,8 +346,8 @@ var defaults = {
 		data: function() { return this.serialize(); },
 		validation: {
 			events: {
-				validate: "blur change",
-				invalidate: "change"
+				validate: "blur change hide.bs.select",
+				invalidate: "change show.bs.select"
 			},
 			styles: {
 				ok: "has-success",
