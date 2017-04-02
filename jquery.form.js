@@ -55,25 +55,26 @@ function reset(e) { // 重置
 		options = $form.data("form.options"),
 		vo = options.validation;
 	// reset validation
-	$form.find(".form-group").each(function(i, group) {
-		var $group = $(group).data("validated", false),
-			$inputs = $group.find(":input");
-		$inputs.each(function(j, input) {
-			var $input = $(input).data("validated", false),
-				$icon = $input.nextUntil(":input").filter(vo.icons.selector).first();
-			$icon.remove();
-			// tooltip
-			if ($input.tooltip)
-				$input.tooltip("destroy");
-			// bootstrap-select
-			if ($input.parent().is(".bootstrap-select"))
-				$input.selectpicker("val", $input.prop("defaultValue"));
-			else
-				$input.val($input.prop("defaultValue"));
-		});
-		$group.removeClass("has-feedback has-success has-warning has-error");
+	$form.find(":input").each(function(j, input) {
+		var $input = $(input).data("validated", false),
+			val = $input.prop("defaultValue"),
+			$icon = $input.nextUntil(":input").filter(vo.icons.selector).first();
+		$icon.remove();
+		// tooltip
+		if ($input.tooltip)
+			$input.tooltip("destroy");
+		// bootstrap-select
+		if ($input.parent().is(".bootstrap-select"))
+			$input.selectpicker("val", val);
+		else if ($input.is(":checkbox, :radio"))
+			$input.prop("checked", val == "true");
+		else
+			$input.val(val);
 	});
-	$form.find("input[type=hidden]").val(""); // 清空hidden域
+	$form.find(".form-group").each(function(i, group) {
+		$(group).data("validated", false)
+		.removeClass("has-feedback has-success has-warning has-error");
+	});
 	if ($.isFunction(options.reset)) { options.reset.apply($form, [ e ]); }
 }
 
