@@ -14,16 +14,17 @@ function submit(e) { // 提交
 	var options = $form.data("form.options");
 	if (!validated($form, options)) return;
 	var data = options.data.apply($form, [ $form ]); // 产生需要提交的数据
-//	return console.log(data);
-	$(":input", $form).attr("disabled", true); // 暂时禁用所有输入框
+	// return console.log(data);
+	$(":disabled", $form).attr("x-disabled", ""); // 标记已经禁用的输入框
+	$(":input:not([x-disabled])", $form).prop("disabled", true); // 暂时禁用所有输入框
 	$.ajax(options.target, {
 		data : data,
 		method : options.method
 	}).then(function(data, textStatus, xhr) {
-		$(":input", $form).attr("disabled", false); // 取消输入框禁用
+		$(":input:not([x-disabled])", $form).attr("disabled", false); // 取消输入框禁用
 		options.result.apply($this, [ false, data, xhr ]);
 	}, function(xhr) {
-		$(":input", $form).attr("disabled", false); // 取消输入框禁用
+		$(":input:not([x-disabled])", $form).attr("disabled", false); // 取消输入框禁用
 		var data = $.parseJSON(xhr.responseText);
 		options.result.apply($this, [ xhr.status, data, xhr ]);
 	});
